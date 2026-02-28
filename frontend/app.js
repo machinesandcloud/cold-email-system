@@ -109,6 +109,7 @@ async function loadDashboard() {
     div.innerHTML = `<h4>${key}</h4><strong>${value}</strong>`;
     statsEl.appendChild(div);
   });
+  loadSequenceSummary();
 }
 
 async function loadDomains() {
@@ -216,8 +217,85 @@ async function loadLists() {
   renderTable(document.getElementById("list-list"), lists, [
     { label: "Name", value: "name" },
     { label: "Description", value: "description" },
-    { label: "Members", value: (l) => l.members.length }
+    { label: "Members", value: (l) => l.members.length },
+    {
+      label: "Delete",
+      render: (row) => {
+        const btn = document.createElement("button");
+        btn.textContent = "Delete";
+        btn.addEventListener("click", async () => {
+          if (!confirm(`Delete list "${row.name}"?`)) return;
+          await apiFetch(`/admin/lists/${row.id}`, { method: "DELETE" });
+          loadLists();
+        });
+        return btn;
+      }
+    }
   ]);
+}
+
+async function loadSequenceSummary() {
+  const summaries = await apiFetch("/admin/sequences/summary");
+  const columns = [
+    { label: "Name", value: "name" },
+    { label: "Status", value: "status" },
+    { label: "Steps", value: "steps" },
+    { label: "Enrollments", value: "enrollments" },
+    { label: "Sent", value: "sentMessages" },
+    { label: "Failed", value: "failedMessages" },
+    { label: "Bounced", value: "bouncedMessages" },
+    { label: "Last Sent", value: (s) => (s.lastSentAt ? new Date(s.lastSentAt).toLocaleString() : "-") },
+    {
+      label: "Actions",
+      render: (row) => {
+        const wrap = document.createElement("div");
+        wrap.style.display = "flex";
+        wrap.style.gap = "8px";
+
+        const viewBtn = document.createElement("button");
+        viewBtn.textContent = "View Messages";
+        viewBtn.addEventListener("click", () => {
+          const nav = document.querySelector('.nav-item[data-view="messages"]');
+          if (nav) nav.click();
+          const select = document.getElementById("message-sequence");
+          select.value = row.id;
+          loadMessages();
+        });
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", async () => {
+          if (!confirm(`Delete sequence "${row.name}" and all related messages?`)) return;
+          await apiFetch(`/admin/sequences/${row.id}`, { method: "DELETE" });
+          loadSequenceSummary();
+          loadSequences();
+        });
+
+        wrap.appendChild(viewBtn);
+        wrap.appendChild(delBtn);
+        return wrap;
+      }
+    }
+  ];
+
+  const dashboardTarget = document.getElementById("sequence-summary");
+  const sequencesTarget = document.getElementById("sequence-summary-list");
+  const messageTarget = document.getElementById("message-sequence-summary");
+
+  if (dashboardTarget) renderTable(dashboardTarget, summaries, columns);
+  if (sequencesTarget) renderTable(sequencesTarget, summaries, columns);
+  if (messageTarget) renderTable(messageTarget, summaries, columns);
+
+  const select = document.getElementById("message-sequence");
+  if (select) {
+    select.innerHTML = "<option value=\"\">All sequences</option>";
+    summaries.forEach((s) => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = `${s.name} (${s.sentMessages} sent)`;
+      select.appendChild(opt);
+    });
+  }
 }
 
 async function loadSequences() {
@@ -265,9 +343,11 @@ async function loadEnrollments() {
 async function loadMessages() {
   const q = document.getElementById("message-filter").value.trim();
   const status = document.getElementById("message-status").value.trim();
-  const messages = await apiFetch(
-    `/admin/messages?take=50&q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`
-  );
+  const sequenceId = document.getElementById("message-sequence").value;
+  const basePath = sequenceId
+    ? `/admin/sequences/${sequenceId}/messages?take=50`
+    : `/admin/messages?take=50&q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`;
+  const messages = await apiFetch(basePath);
   renderTable(document.getElementById("message-list"), messages, [
     { label: "To", value: "toEmail" },
     { label: "Subject", value: "subject" },
@@ -328,11 +408,10 @@ function wireNav() {
       switch (view) {
         case "dashboard":
           loadDashboard();
+          loadSequenceSummary();
           break;
-        case "domains":
+        case "infrastructure":
           loadDomains();
-          break;
-        case "mailboxes":
           loadMailboxes();
           break;
         case "contacts":
@@ -343,11 +422,13 @@ function wireNav() {
           break;
         case "sequences":
           loadSequences();
+          loadSequenceSummary();
           break;
         case "enrollments":
           loadEnrollments();
           break;
         case "messages":
+          loadSequenceSummary();
           loadMessages();
           break;
         case "events":
@@ -530,6 +611,7 @@ async function wireForms() {
   document.getElementById("enrollment-refresh").addEventListener("click", loadEnrollments);
   document.getElementById("message-refresh").addEventListener("click", loadMessages);
   document.getElementById("event-refresh").addEventListener("click", loadEvents);
+  document.getElementById("message-sequence").addEventListener("change", loadMessages);
 
   document.getElementById("contact-export").addEventListener("click", () => {
     downloadCsv("/admin/contacts/export", "contacts.csv");

@@ -23,17 +23,15 @@
 
       <nav class="sidebar">
         <button class="nav-item active" data-view="dashboard">Dashboard</button>
-        <button class="nav-item" data-view="domains">Domains</button>
-        <button class="nav-item" data-view="mailboxes">Mailboxes</button>
-        <button class="nav-item" data-view="contacts">Contacts</button>
-        <button class="nav-item" data-view="lists">Lists</button>
         <button class="nav-item" data-view="sequences">Sequences</button>
-        <button class="nav-item" data-view="enrollments">Enrollments</button>
-        <button class="nav-item" data-view="dispatch">Dispatch</button>
+        <button class="nav-item" data-view="lists">Lists</button>
+        <button class="nav-item" data-view="contacts">Contacts</button>
+        <button class="nav-item" data-view="infrastructure">Infrastructure</button>
         <button class="nav-item" data-view="messages">Messages</button>
         <button class="nav-item" data-view="events">Events</button>
         <button class="nav-item" data-view="suppression">Suppression</button>
         <button class="nav-item" data-view="unsubscribes">Unsubscribes</button>
+        <button class="nav-item" data-view="dispatch">Dispatch</button>
       </nav>
 
       <main class="content">
@@ -44,6 +42,10 @@
             <div class="actions">
               <button id="refresh-dashboard">Refresh</button>
             </div>
+          </div>
+          <div class="panel">
+            <h2>Active Sequences</h2>
+            <div id="sequence-summary"></div>
           </div>
           <div class="panel">
             <h2>Quick Setup (Recommended)</h2>
@@ -95,9 +97,13 @@
           </div>
         </section>
 
-        <section class="view" id="domains">
+        <section class="view" id="infrastructure">
           <div class="panel">
-            <h2>Domains</h2>
+            <h2>Infrastructure</h2>
+            <p>Manage domains and mailboxes. The platform rotates delivery across mailboxes automatically.</p>
+          </div>
+          <div class="panel">
+            <h3>Domains</h3>
             <form id="domain-form" class="grid">
               <input type="hidden" name="id" />
               <input name="domain" placeholder="example.com" required />
@@ -114,11 +120,8 @@
             </form>
             <div id="domain-list"></div>
           </div>
-        </section>
-
-        <section class="view" id="mailboxes">
           <div class="panel">
-            <h2>Mailboxes (Mailgun)</h2>
+            <h3>Mailboxes (Mailgun)</h3>
             <form id="mailbox-form" class="grid">
               <input type="hidden" name="id" />
               <input name="name" placeholder="Mailbox name" required />
@@ -197,6 +200,10 @@
         <section class="view" id="sequences">
           <div class="panel">
             <h2>Sequences</h2>
+            <div class="panel">
+              <h3>Sequence Overview</h3>
+              <div id="sequence-summary-list"></div>
+            </div>
             <form id="sequence-form" class="grid">
               <input type="hidden" name="id" />
               <input name="name" placeholder="Sequence name" required />
@@ -261,8 +268,15 @@
             <div class="grid">
               <input id="message-filter" placeholder="Filter by email or subject" />
               <input id="message-status" placeholder="Status (queued/sent/failed)" />
+              <select id="message-sequence">
+                <option value="">All sequences</option>
+              </select>
               <button id="message-refresh">Refresh</button>
               <button id="message-export">Export CSV</button>
+            </div>
+            <div class="panel">
+              <h3>Grouped by Sequence</h3>
+              <div id="message-sequence-summary"></div>
             </div>
             <div id="message-list"></div>
             <div class="panel" id="message-detail">

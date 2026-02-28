@@ -408,6 +408,13 @@ app.get("/admin/lists", async (_req, res) => {
   res.json(lists);
 });
 
+app.delete("/admin/lists/:id", async (req, res) => {
+  const listId = req.params.id;
+  await prisma.listMember.deleteMany({ where: { listId } });
+  await prisma.contactList.delete({ where: { id: listId } });
+  res.status(204).send();
+});
+
 app.post("/admin/lists/:id/members", async (req, res) => {
   const listId = req.params.id;
   const contactIds = z.array(z.string()).safeParse(req.body?.contactIds);
@@ -457,6 +464,53 @@ app.get("/admin/sequences", async (_req, res) => {
   res.json(sequences);
 });
 
+app.get("/admin/sequences/summary", async (_req, res) => {
+  const sequences = await prisma.sequence.findMany({
+    include: { steps: true, _count: { select: { enrollments: true } } },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const summaries = await Promise.all(
+    sequences.map(async (sequence) => {
+      const [totalMessages, sentMessages, failedMessages, bouncedMessages, lastMessage] =
+        await Promise.all([
+          prisma.message.count({ where: { enrollment: { sequenceId: sequence.id } } }),
+          prisma.message.count({
+            where: { enrollment: { sequenceId: sequence.id }, status: "sent" }
+          }),
+          prisma.message.count({
+            where: { enrollment: { sequenceId: sequence.id }, status: "failed" }
+          }),
+          prisma.message.count({
+            where: { enrollment: { sequenceId: sequence.id }, status: "bounced" }
+          }),
+          prisma.message.findFirst({
+            where: { enrollment: { sequenceId: sequence.id }, sentAt: { not: null } },
+            orderBy: { sentAt: "desc" },
+            select: { sentAt: true }
+          })
+        ]);
+
+      return {
+        id: sequence.id,
+        name: sequence.name,
+        status: sequence.status,
+        steps: sequence.steps.length,
+        enrollments: sequence._count.enrollments,
+        totalMessages,
+        sentMessages,
+        failedMessages,
+        bouncedMessages,
+        lastSentAt: lastMessage?.sentAt ?? null,
+        sendWindow: `${sequence.sendWindowStart}-${sequence.sendWindowEnd}`,
+        timezonePolicy: sequence.timezonePolicy
+      };
+    })
+  );
+
+  res.json(summaries);
+});
+
 app.patch("/admin/sequences/:id", async (req, res) => {
   const parsed = sequenceSchema.partial().safeParse(req.body);
   if (!parsed.success) {
@@ -470,6 +524,24 @@ app.patch("/admin/sequences/:id", async (req, res) => {
   res.json(sequence);
 });
 
+app.delete("/admin/sequences/:id", async (req, res) => {
+  const sequenceId = req.params.id;
+  await prisma.$transaction(async (tx) => {
+    const messages = await tx.message.findMany({
+      where: { enrollment: { sequenceId } },
+      select: { id: true }
+    });
+    const messageIds = messages.map((m) => m.id);
+    if (messageIds.length > 0) {
+      await tx.event.deleteMany({ where: { messageId: { in: messageIds } } });
+      await tx.message.deleteMany({ where: { id: { in: messageIds } } });
+    }
+    await tx.enrollment.deleteMany({ where: { sequenceId } });
+    await tx.sequenceStep.deleteMany({ where: { sequenceId } });
+    await tx.sequence.delete({ where: { id: sequenceId } });
+  });
+  res.status(204).send();
+});
 const stepSchema = z.object({
   stepNumber: z.number().int().positive(),
   subjectTemplate: z.string().min(1),
@@ -677,6 +749,22 @@ app.get("/admin/messages", async (req, res) => {
       ...(mailboxId ? { mailboxId } : {}),
       ...(sequenceId ? { enrollment: { sequenceId } } : {})
     },
+    orderBy: { createdAt: "desc" }
+  });
+  res.json(messages);
+});
+
+app.get("/admin/sequences/:id/messages", async (req, res) => {
+  const parsed = paginationSchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json(parsed.error.flatten());
+    return;
+  }
+  const messages = await prisma.message.findMany({
+    skip: parsed.data.skip,
+    take: parsed.data.take,
+    where: { enrollment: { sequenceId: req.params.id } },
+    include: { mailbox: true, enrollment: { include: { contact: true } } },
     orderBy: { createdAt: "desc" }
   });
   res.json(messages);
