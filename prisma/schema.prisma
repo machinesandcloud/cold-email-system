@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SequenceStatus {
+  draft
+  active
+  paused
+  archived
+}
+
+enum EnrollmentStatus {
+  active
+  paused
+  completed
+  stopped
+}
+
+enum MessageStatus {
+  queued
+  sending
+  sent
+  failed
+  bounced
+}
+
+enum EventType {
+  delivered
+  opened
+  clicked
+  bounced
+  unsubscribed
+}
+
+enum ProviderType {
+  mailgun
+  smtp
+}
+
+model DomainConfig {
+  id                 String   @id @default(cuid())
+  domain             String   @unique
+  dailyLimit         Int      @default(200)
+  warmupEnabled      Boolean  @default(true)
+  warmupStartPerDay  Int      @default(20)
+  warmupStepPerDay   Int      @default(10)
+  warmupMaxPerDay    Int      @default(200)
+  warmupStartedAt    DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  mailboxes          Mailbox[]
+}
+
+model Mailbox {
+  id                String        @id @default(cuid())
+  name              String
+  provider          ProviderType  @default(mailgun)
+  apiKey            String
+  domainId          String
+  domain            DomainConfig  @relation(fields: [domainId], references: [id])
+  fromName          String
+  fromEmail         String
+  replyTo           String?
+  dailyLimit        Int           @default(50)
+  warmupEnabled     Boolean       @default(true)
+  warmupStartPerDay Int           @default(10)
+  warmupStepPerDay  Int           @default(5)
+  warmupMaxPerDay   Int           @default(50)
+  warmupStartedAt   DateTime      @default(now())
+  active            Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  messages          Message[]
+}
+
+model Contact {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  firstName  String?
+  lastName   String?
+  company    String?
+  timezone   String?
+  optedIn    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lists      ListMember[]
+  enrollments Enrollment[]
+}
+
+model ContactList {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     ListMember[]
+}
+
+model ListMember {
+  id        String   @id @default(cuid())
+  listId    String
+  contactId String
+  list      ContactList @relation(fields: [listId], references: [id])
+  contact   Contact     @relation(fields: [contactId], references: [id])
+  createdAt DateTime    @default(now())
+
+  @@unique([listId, contactId])
+}
+
+model Sequence {
+  id              String         @id @default(cuid())
+  name            String         @unique
+  status          SequenceStatus @default(draft)
+  timezonePolicy  String         @default("contact")
+  sendWindowStart String         @default("09:00")
+  sendWindowEnd   String         @default("17:00")
+  daysBetween     Int            @default(2)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  steps           SequenceStep[]
+  enrollments     Enrollment[]
+}
+
+model SequenceStep {
+  id             String   @id @default(cuid())
+  sequenceId     String
+  stepNumber     Int
+  subjectTemplate String
+  bodyTemplate    String
+  delayDays       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  sequence       Sequence @relation(fields: [sequenceId], references: [id])
+
+  @@unique([sequenceId, stepNumber])
+}
+
+model Enrollment {
+  id            String           @id @default(cuid())
+  sequenceId    String
+  contactId     String
+  status        EnrollmentStatus @default(active)
+  currentStep   Int              @default(1)
+  nextSendAt    DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  sequence      Sequence         @relation(fields: [sequenceId], references: [id])
+  contact       Contact          @relation(fields: [contactId], references: [id])
+  messages      Message[]
+
+  @@unique([sequenceId, contactId])
+}
+
+model Message {
+  id                String        @id @default(cuid())
+  enrollmentId      String
+  mailboxId         String
+  toEmail           String
+  subject           String
+  bodyHtml          String
+  status            MessageStatus @default(queued)
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  providerMessageId String?
+  trackingToken     String        @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  enrollment        Enrollment    @relation(fields: [enrollmentId], references: [id])
+  mailbox           Mailbox       @relation(fields: [mailboxId], references: [id])
+  events            Event[]
+}
+
+model Event {
+  id        String    @id @default(cuid())
+  messageId String
+  type      EventType
+  url       String?
+  payload   Json?
+  occurredAt DateTime @default(now())
+  message   Message   @relation(fields: [messageId], references: [id])
+}
+
+model Unsubscribe {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model Suppression {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String
+  createdAt DateTime @default(now())
+}

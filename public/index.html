@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outbound Email Control Center</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Outbound Email Control Center</p>
+          <h1>Campaign Ops</h1>
+          <p class="sub">Manage domains, mailboxes, sequences, compliance, and throughput from one console.</p>
+        </div>
+        <div class="token">
+          <label for="token">Admin Token</label>
+          <input id="token" type="password" placeholder="x-admin-token" />
+          <button id="save-token">Save</button>
+        </div>
+      </header>
+
+      <nav class="sidebar">
+        <button class="nav-item active" data-view="dashboard">Dashboard</button>
+        <button class="nav-item" data-view="domains">Domains</button>
+        <button class="nav-item" data-view="mailboxes">Mailboxes</button>
+        <button class="nav-item" data-view="contacts">Contacts</button>
+        <button class="nav-item" data-view="lists">Lists</button>
+        <button class="nav-item" data-view="sequences">Sequences</button>
+        <button class="nav-item" data-view="enrollments">Enrollments</button>
+        <button class="nav-item" data-view="dispatch">Dispatch</button>
+        <button class="nav-item" data-view="messages">Messages</button>
+        <button class="nav-item" data-view="events">Events</button>
+        <button class="nav-item" data-view="suppression">Suppression</button>
+        <button class="nav-item" data-view="unsubscribes">Unsubscribes</button>
+      </nav>
+
+      <main class="content">
+        <section class="view active" id="dashboard">
+          <div class="panel">
+            <h2>Overview</h2>
+            <div class="stats" id="stats"></div>
+            <div class="actions">
+              <button id="refresh-dashboard">Refresh</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="domains">
+          <div class="panel">
+            <h2>Domains</h2>
+            <form id="domain-form" class="grid">
+              <input type="hidden" name="id" />
+              <input name="domain" placeholder="example.com" required />
+              <input name="dailyLimit" type="number" placeholder="Daily limit" />
+              <input name="warmupStartPerDay" type="number" placeholder="Warmup start/day" />
+              <input name="warmupStepPerDay" type="number" placeholder="Warmup step/day" />
+              <input name="warmupMaxPerDay" type="number" placeholder="Warmup max/day" />
+              <label class="toggle">
+                <input name="warmupEnabled" type="checkbox" checked />
+                <span>Warmup enabled</span>
+              </label>
+              <button type="submit">Add / Update</button>
+              <button type="button" id="domain-clear">Clear</button>
+            </form>
+            <div id="domain-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="mailboxes">
+          <div class="panel">
+            <h2>Mailboxes (Mailgun)</h2>
+            <form id="mailbox-form" class="grid">
+              <input type="hidden" name="id" />
+              <input name="name" placeholder="Mailbox name" required />
+              <input name="domain" placeholder="example.com" required />
+              <input name="apiKey" placeholder="Mailgun API key" required />
+              <input name="fromName" placeholder="From name" required />
+              <input name="fromEmail" placeholder="from@example.com" required />
+              <input name="replyTo" placeholder="reply@example.com" />
+              <input name="dailyLimit" type="number" placeholder="Daily limit" />
+              <input name="warmupStartPerDay" type="number" placeholder="Warmup start/day" />
+              <input name="warmupStepPerDay" type="number" placeholder="Warmup step/day" />
+              <input name="warmupMaxPerDay" type="number" placeholder="Warmup max/day" />
+              <label class="toggle">
+                <input name="warmupEnabled" type="checkbox" checked />
+                <span>Warmup enabled</span>
+              </label>
+              <button type="submit">Add / Update</button>
+              <button type="button" id="mailbox-clear">Clear</button>
+            </form>
+            <div id="mailbox-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="contacts">
+          <div class="panel">
+            <h2>Contacts</h2>
+            <div class="grid">
+              <input id="contact-filter" placeholder="Filter by name/email/company" />
+              <button id="contact-refresh">Refresh</button>
+              <button id="contact-export">Export CSV</button>
+            </div>
+            <form id="contact-form" class="grid">
+              <input type="hidden" name="id" />
+              <input name="email" type="email" placeholder="email@example.com" required />
+              <input name="firstName" placeholder="First name" />
+              <input name="lastName" placeholder="Last name" />
+              <input name="company" placeholder="Company" />
+              <input name="timezone" placeholder="Timezone (e.g. America/New_York)" />
+              <label class="toggle">
+                <input name="optedIn" type="checkbox" checked />
+                <span>Opted in</span>
+              </label>
+              <button type="submit">Add / Update</button>
+              <button type="button" id="contact-clear">Clear</button>
+            </form>
+
+            <div class="panel">
+              <h3>Import CSV</h3>
+              <textarea id="contact-csv" rows="5" placeholder="email,firstName,lastName,company,timezone,optedIn"></textarea>
+              <input id="contact-list-id" placeholder="Optional list ID" />
+              <button id="import-contacts">Import</button>
+            </div>
+
+            <div id="contact-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="lists">
+          <div class="panel">
+            <h2>Lists</h2>
+            <form id="list-form" class="grid">
+              <input name="name" placeholder="List name" required />
+              <input name="description" placeholder="Description" />
+              <button type="submit">Create List</button>
+            </form>
+            <div class="panel">
+              <h3>Add Members</h3>
+              <input id="list-id" placeholder="List ID" />
+              <textarea id="list-member-ids" rows="4" placeholder="contactId one per line"></textarea>
+              <button id="add-list-members">Add Members</button>
+            </div>
+            <div id="list-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="sequences">
+          <div class="panel">
+            <h2>Sequences</h2>
+            <form id="sequence-form" class="grid">
+              <input type="hidden" name="id" />
+              <input name="name" placeholder="Sequence name" required />
+              <select name="status">
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="paused">Paused</option>
+              </select>
+              <select name="timezonePolicy">
+                <option value="contact">Contact Timezone</option>
+                <option value="utc">UTC</option>
+              </select>
+              <input name="sendWindowStart" placeholder="Send window start (09:00)" />
+              <input name="sendWindowEnd" placeholder="Send window end (17:00)" />
+              <input name="daysBetween" type="number" placeholder="Days between steps" />
+              <button type="submit">Add / Update</button>
+              <button type="button" id="sequence-clear">Clear</button>
+            </form>
+
+            <div class="panel">
+              <h3>Add Step</h3>
+              <input id="sequence-id" placeholder="Sequence ID" />
+              <input id="step-number" type="number" placeholder="Step number" />
+              <input id="step-subject" placeholder="Subject template" />
+              <textarea id="step-body" rows="4" placeholder="Body template (use {{firstName}} etc)"></textarea>
+              <input id="step-delay" type="number" placeholder="Delay days" />
+              <button id="add-step">Add/Update Step</button>
+            </div>
+
+            <div id="sequence-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="enrollments">
+          <div class="panel">
+            <h2>Enrollments</h2>
+            <div class="grid">
+              <input id="enrollment-filter" placeholder="Filter by contact/sequence" />
+              <button id="enrollment-refresh">Refresh</button>
+            </div>
+            <div class="grid">
+              <input id="enroll-sequence-id" placeholder="Sequence ID" />
+              <input id="enroll-contact-id" placeholder="Contact ID" />
+              <button id="enroll-contact">Enroll</button>
+            </div>
+            <div id="enrollment-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="dispatch">
+          <div class="panel">
+            <h2>Dispatch</h2>
+            <p>Queue eligible messages based on warmup + limits.</p>
+            <button id="dispatch-now">Dispatch Now</button>
+            <pre id="dispatch-output"></pre>
+          </div>
+        </section>
+
+        <section class="view" id="messages">
+          <div class="panel">
+            <h2>Messages</h2>
+            <div class="grid">
+              <input id="message-filter" placeholder="Filter by email or subject" />
+              <input id="message-status" placeholder="Status (queued/sent/failed)" />
+              <button id="message-refresh">Refresh</button>
+              <button id="message-export">Export CSV</button>
+            </div>
+            <div id="message-list"></div>
+            <div class="panel" id="message-detail">
+              <h3>Message Detail</h3>
+              <pre id="message-detail-body">Select a message to view details.</pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="events">
+          <div class="panel">
+            <h2>Events</h2>
+            <div class="grid">
+              <input id="event-type" placeholder="Type (opened/clicked/bounced)" />
+              <button id="event-refresh">Refresh</button>
+              <button id="event-export">Export CSV</button>
+            </div>
+            <div id="event-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="suppression">
+          <div class="panel">
+            <h2>Suppression</h2>
+            <div id="suppression-list"></div>
+          </div>
+        </section>
+
+        <section class="view" id="unsubscribes">
+          <div class="panel">
+            <h2>Unsubscribes</h2>
+            <div id="unsubscribe-list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
