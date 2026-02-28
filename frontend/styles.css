@@ -145,6 +145,14 @@ body {
   margin-bottom: 16px;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 input,
 textarea,
 select {

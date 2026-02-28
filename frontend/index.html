@@ -49,15 +49,42 @@
             <h2>Quick Setup (Recommended)</h2>
             <p>One form to create domain, mailbox, test contact, sequence, and send a test email.</p>
             <form id="quick-setup-form" class="grid">
-              <input name="domain" placeholder="sandboxXXXX.mailgun.org" required />
-              <input name="apiKey" placeholder="Mailgun sending key" required />
-              <input name="fromName" placeholder="From name" required />
-              <input name="fromEmail" placeholder="from@sandboxXXXX.mailgun.org" required />
-              <input name="replyTo" placeholder="reply@example.com" />
-              <input name="testRecipient" type="email" placeholder="authorized recipient email" required />
-              <input name="sequenceName" placeholder="Sequence name (optional)" />
-              <input name="subjectTemplate" placeholder="Subject template" />
-              <textarea name="bodyTemplate" rows="3" placeholder="Body template"></textarea>
+              <label class="field">
+                <span>Mailgun Domain (full)</span>
+                <input name="domain" placeholder="sandboxXXXX.mailgun.org" required />
+              </label>
+              <label class="field">
+                <span>Mailgun Sending Key</span>
+                <input name="apiKey" placeholder="key-..." required />
+              </label>
+              <label class="field">
+                <span>From Name</span>
+                <input name="fromName" placeholder="Your Name" required />
+              </label>
+              <label class="field">
+                <span>From Email (must match domain)</span>
+                <input name="fromEmail" placeholder="postmaster@sandboxXXXX.mailgun.org" required />
+              </label>
+              <label class="field">
+                <span>Reply-To (optional)</span>
+                <input name="replyTo" placeholder="reply@example.com" />
+              </label>
+              <label class="field">
+                <span>Test Recipient (must be authorized in Mailgun sandbox)</span>
+                <input name="testRecipient" type="email" placeholder="you@gmail.com" required />
+              </label>
+              <label class="field">
+                <span>Sequence Name (optional)</span>
+                <input name="sequenceName" placeholder="Test Sequence" />
+              </label>
+              <label class="field">
+                <span>Subject Template</span>
+                <input name="subjectTemplate" placeholder="Hi {{firstName}}" />
+              </label>
+              <label class="field">
+                <span>Body Template</span>
+                <textarea name="bodyTemplate" rows="3" placeholder="Hello {{firstName}}, this is a test."></textarea>
+              </label>
               <label class="toggle">
                 <input name="dispatchNow" type="checkbox" checked />
                 <span>Send test now</span>
