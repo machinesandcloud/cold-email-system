@@ -60,7 +60,7 @@ function inSendWindow(now: Date, start: string, end: string, timeZone: string) {
   return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
 }
 
-export async function dispatchEligibleMessages(limit = 500) {
+export async function dispatchEligibleMessages(limit = 500): Promise<{ queued: number; messageIds: string[] }> {
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
@@ -71,7 +71,7 @@ export async function dispatchEligibleMessages(limit = 500) {
   });
 
   if (mailboxes.length === 0) {
-    return { queued: 0, reason: "no-mailboxes" };
+    return { queued: 0, messageIds: [] };
   }
 
   const mailboxState = new Map<string, { sent: number; limit: number; domainId: string }>();

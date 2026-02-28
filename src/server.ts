@@ -8,6 +8,7 @@ import { parse } from "csv-parse/sync";
 import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { EventType, MessageStatus } from "@prisma/client";
 import { prisma } from "./lib/prisma.js";
 import { config } from "./lib/config.js";
 import { requireAdmin } from "./lib/auth.js";
@@ -567,7 +568,10 @@ app.get("/admin/messages", async (req, res) => {
     return;
   }
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
-  const status = typeof req.query.status === "string" ? req.query.status : "";
+  const statusRaw = typeof req.query.status === "string" ? req.query.status : "";
+  const status = Object.values(MessageStatus).includes(statusRaw as MessageStatus)
+    ? (statusRaw as MessageStatus)
+    : undefined;
   const mailboxId = typeof req.query.mailboxId === "string" ? req.query.mailboxId : "";
   const sequenceId = typeof req.query.sequenceId === "string" ? req.query.sequenceId : "";
   const messages = await prisma.message.findMany({
@@ -614,7 +618,10 @@ app.get("/admin/events", async (req, res) => {
     res.status(400).json(parsed.error.flatten());
     return;
   }
-  const type = typeof req.query.type === "string" ? req.query.type : "";
+  const typeRaw = typeof req.query.type === "string" ? req.query.type : "";
+  const type = Object.values(EventType).includes(typeRaw as EventType)
+    ? (typeRaw as EventType)
+    : undefined;
   const events = await prisma.event.findMany({
     skip: parsed.data.skip,
     take: parsed.data.take,
