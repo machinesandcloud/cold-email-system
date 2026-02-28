@@ -45,6 +45,27 @@
               <button id="refresh-dashboard">Refresh</button>
             </div>
           </div>
+          <div class="panel">
+            <h2>Quick Setup (Recommended)</h2>
+            <p>One form to create domain, mailbox, test contact, sequence, and send a test email.</p>
+            <form id="quick-setup-form" class="grid">
+              <input name="domain" placeholder="sandboxXXXX.mailgun.org" required />
+              <input name="apiKey" placeholder="Mailgun sending key" required />
+              <input name="fromName" placeholder="From name" required />
+              <input name="fromEmail" placeholder="from@sandboxXXXX.mailgun.org" required />
+              <input name="replyTo" placeholder="reply@example.com" />
+              <input name="testRecipient" type="email" placeholder="authorized recipient email" required />
+              <input name="sequenceName" placeholder="Sequence name (optional)" />
+              <input name="subjectTemplate" placeholder="Subject template" />
+              <textarea name="bodyTemplate" rows="3" placeholder="Body template"></textarea>
+              <label class="toggle">
+                <input name="dispatchNow" type="checkbox" checked />
+                <span>Send test now</span>
+              </label>
+              <button type="submit">Run Quick Setup</button>
+            </form>
+            <pre id="quick-setup-output">Waiting for input...</pre>
+          </div>
         </section>
 
         <section class="view" id="domains">

@@ -501,6 +501,18 @@ async function wireForms() {
 
   document.getElementById("refresh-dashboard").addEventListener("click", loadDashboard);
 
+  document.getElementById("quick-setup-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const payload = formToObject(event.target);
+    payload.dispatchNow = Boolean(payload.dispatchNow ?? true);
+    const result = await apiFetch("/admin/quick-setup", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    document.getElementById("quick-setup-output").textContent = JSON.stringify(result, null, 2);
+    loadDashboard();
+  });
+
   document.getElementById("domain-clear").addEventListener("click", () => {
     document.getElementById("domain-form").reset();
   });

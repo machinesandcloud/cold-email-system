@@ -121,3 +121,6 @@ Render works well for API + worker + scheduler + Postgres + Redis. Netlify can h
 
 ## Frontend UI
 The UI is a static app served by the API. Use it to manage domains, mailboxes, contacts, lists, sequences, enrollments, and dispatch.
+
+### Quick Setup
+Use the Dashboard "Quick Setup" form to create a domain, mailbox, test contact, sequence + step, enrollment, and optionally dispatch a test email in one click.

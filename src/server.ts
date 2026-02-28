@@ -561,6 +561,92 @@ app.post("/admin/dispatch", async (_req, res) => {
   res.json(result);
 });
 
+const quickSetupSchema = z.object({
+  domain: z.string().min(3),
+  apiKey: z.string().min(5),
+  fromName: z.string().min(1),
+  fromEmail: z.string().email(),
+  replyTo: z.string().email().optional(),
+  testRecipient: z.string().email(),
+  sequenceName: z.string().default("Test Sequence"),
+  subjectTemplate: z.string().default("Hi {{firstName}}"),
+  bodyTemplate: z.string().default("Hello {{firstName}}, this is a test email."),
+  dispatchNow: z.boolean().default(true)
+});
+
+app.post("/admin/quick-setup", async (req, res) => {
+  const parsed = quickSetupSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(parsed.error.flatten());
+    return;
+  }
+
+  const data = parsed.data;
+
+  const domain = await prisma.domainConfig.upsert({
+    where: { domain: data.domain },
+    update: {},
+    create: { domain: data.domain }
+  });
+
+  const mailbox = await prisma.mailbox.create({
+    data: {
+      name: `mailgun-${data.domain}`,
+      apiKey: data.apiKey,
+      fromName: data.fromName,
+      fromEmail: data.fromEmail,
+      replyTo: data.replyTo,
+      domainId: domain.id
+    }
+  });
+
+  const contact = await prisma.contact.upsert({
+    where: { email: data.testRecipient },
+    update: { optedIn: true },
+    create: { email: data.testRecipient, optedIn: true, firstName: "Test" }
+  });
+
+  const sequence = await prisma.sequence.create({
+    data: {
+      name: data.sequenceName,
+      status: "active"
+    }
+  });
+
+  await prisma.sequenceStep.create({
+    data: {
+      sequenceId: sequence.id,
+      stepNumber: 1,
+      subjectTemplate: data.subjectTemplate,
+      bodyTemplate: data.bodyTemplate,
+      delayDays: 0
+    }
+  });
+
+  const enrollment = await prisma.enrollment.upsert({
+    where: { sequenceId_contactId: { sequenceId: sequence.id, contactId: contact.id } },
+    update: { status: "active", currentStep: 1 },
+    create: { sequenceId: sequence.id, contactId: contact.id }
+  });
+
+  let dispatchResult = null as null | { queued: number; messageIds: string[] };
+  if (data.dispatchNow) {
+    dispatchResult = await dispatchEligibleMessages();
+    for (const messageId of dispatchResult.messageIds) {
+      await sendQueue.add("send", { messageId }, { jobId: messageId });
+    }
+  }
+
+  res.json({
+    domain,
+    mailbox,
+    contact,
+    sequence,
+    enrollment,
+    dispatch: dispatchResult
+  });
+});
+
 app.get("/admin/messages", async (req, res) => {
   const parsed = paginationSchema.safeParse(req.query);
   if (!parsed.success) {
