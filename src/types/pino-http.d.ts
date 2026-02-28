@@ -1,4 +1,5 @@
 declare module "pino-http" {
-  const pinoHttp: (options?: unknown) => unknown;
+  import type { RequestHandler } from "express";
+  const pinoHttp: (options?: unknown) => RequestHandler;
   export default pinoHttp;
 }
